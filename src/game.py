@@ -5,12 +5,19 @@ Contains the main Game class that orchestrates the game loop.
 
 import pygame
 import random
+import sys
 from .board import Board
 from .piece import Piece
 from .scoring import Scoring
 from .renderer import Renderer
 from .input_handler import InputHandler, Action
 from .audio import SoundManager
+from .menu import MainMenu
+
+class GameState:
+    MENU = 0
+    PLAYING = 1
+    GAME_OVER = 2
 
 class Game:
     """
@@ -29,10 +36,13 @@ class Game:
         self.renderer = Renderer(self.screen)
         self.input_handler = InputHandler()
         self.audio = SoundManager()
+        
+        # Menu System
+        self.menu = MainMenu(self.screen, self.renderer, self.scoring, self.audio)
+        self.state = GameState.MENU
 
         self.current_piece = self._generate_piece()
         self.next_piece = self._generate_piece()
-        self.game_over = False
         self.paused = False
 
         self.drop_timer = 0
@@ -61,12 +71,30 @@ class Game:
 
         # Check for game over
         if not self.board.is_valid_position(self.current_piece):
-            self.game_over = True
+            self.state = GameState.GAME_OVER
             self.audio.play('gameover')
+
+    def start_game(self):
+        """Reset and start a new game."""
+        self.board = Board()
+        self.scoring.reset()
+        self.current_piece = self._generate_piece()
+        self.next_piece = self._generate_piece()
+        self.state = GameState.PLAYING
+        self.paused = False
+        self.drop_timer = 0
 
     def update(self, dt: float):
         """Update game state."""
-        if self.game_over or self.paused:
+        
+        if self.state == GameState.MENU:
+            self.menu.update()
+            return
+            
+        if self.state == GameState.GAME_OVER:
+            return
+
+        if self.paused:
             return
 
         self.input_handler.update()
@@ -120,10 +148,8 @@ class Game:
                         self.current_piece.shape = original_shape
                         self.current_piece.rotation = (self.current_piece.rotation - 1) % 4
                     else:
-                        # Success with right kick
                         self.audio.play('rotate')
                 else:
-                    # Success with left kick
                     self.audio.play('rotate')
             else:
                 self.audio.play('rotate')
@@ -177,47 +203,69 @@ class Game:
 
     def render(self):
         """Render the game."""
+        
+        if self.state == GameState.MENU:
+            self.menu.draw()
+            pygame.display.flip()
+            return
+
+        # Game Rendering
         self.screen.fill(self.renderer.COLOR_BG)
 
-        if not self.game_over:
-            self.renderer.draw_board(self.board)
+        self.renderer.draw_board(self.board)
+        
+        if self.state == GameState.PLAYING or self.state == GameState.GAME_OVER:
+            # Don't draw active piece in game over if needed, but usually fine
+            if self.state == GameState.PLAYING:
+                 # Draw ghost piece
+                ghost = self._get_ghost_piece()
+                self.renderer.draw_piece(ghost, ghost=True)
+                self.renderer.draw_piece(self.current_piece)
             
-            # Draw ghost piece
-            ghost = self._get_ghost_piece()
-            self.renderer.draw_piece(ghost, ghost=True)
-            
-            self.renderer.draw_piece(self.current_piece)
             self.renderer.draw_ui(self.scoring, self.next_piece)
             
             if self.paused:
                 self.renderer.draw_pause()
-        else:
-            self.renderer.draw_board(self.board)
-            self.renderer.draw_game_over()
+                
+            if self.state == GameState.GAME_OVER:
+                self.renderer.draw_game_over()
 
         pygame.display.flip()
 
     def handle_events(self):
         """Handle pygame events."""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        events = pygame.event.get()
+        
+        # Pass events to menu if in menu state
+        if self.state == GameState.MENU:
+            action = self.menu.handle_input(events)
+            if action == "START":
+                self.start_game()
+            elif action == "EXIT":
                 return False
+            # Theme change is handled internally by menu modifying renderer
+            
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.scoring.save_high_score()
+                return False
+            
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    self.paused = not self.paused
-                elif event.key == pygame.K_r and self.game_over:
-                    self.restart()
-        return True
+                if self.state == GameState.PLAYING:
+                    if event.key == pygame.K_p:
+                        self.paused = not self.paused
+                    elif event.key == pygame.K_ESCAPE:
+                        # Return to menu
+                        self.scoring.save_high_score()
+                        self.state = GameState.MENU
+                        
+                elif self.state == GameState.GAME_OVER:
+                    if event.key == pygame.K_r:
+                        self.start_game()
+                    elif event.key == pygame.K_ESCAPE:
+                        self.state = GameState.MENU
 
-    def restart(self):
-        """Restart the game."""
-        self.board = Board()
-        self.scoring.reset()
-        self.current_piece = self._generate_piece()
-        self.next_piece = self._generate_piece()
-        self.game_over = False
-        self.paused = False
-        self.drop_timer = 0
+        return True
 
     def run(self):
         """Main game loop."""
@@ -228,5 +276,5 @@ class Game:
             self.update(dt)
             self.render()
 
-        self.scoring.save_high_score()
         pygame.quit()
+        sys.exit()
