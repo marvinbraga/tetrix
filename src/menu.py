@@ -115,19 +115,50 @@ class MainMenu:
         self.screen.blit(footer_text, footer_rect)
 
     def _draw_high_scores(self):
-        """Draw the high scores screen."""
+        """Draw the high scores screen with a list of top scores."""
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 180))
+        overlay.fill((10, 10, 20, 230))
         self.screen.blit(overlay, (0, 0))
         
-        title_surf = self.font_large.render("HIGH SCORE", True, self.renderer.COLOR_TEXT)
-        title_rect = title_surf.get_rect(center=(self.screen.get_width() // 2, 150))
+        # Title
+        title_surf = self.font_large.render("TOP SCORES", True, self.renderer.COLOR_TEXT)
+        title_rect = title_surf.get_rect(center=(self.screen.get_width() // 2, 80))
         self.screen.blit(title_surf, title_rect)
 
-        score_val = self.font_large.render(str(self.scoring.high_score), True, self.renderer.COLOR_TEXT_WHITE)
-        score_rect = score_val.get_rect(center=(self.screen.get_width() // 2, 300))
-        self.screen.blit(score_val, score_rect)
+        # Table Header
+        header_y = 160
+        header_font = pygame.font.SysFont('Arial', 24, bold=True)
+        col1 = header_font.render("RANK", True, self.renderer.COLOR_TEXT)
+        col2 = header_font.render("SCORE", True, self.renderer.COLOR_TEXT)
+        col3 = header_font.render("LVL", True, self.renderer.COLOR_TEXT)
+        col4 = header_font.render("DATE", True, self.renderer.COLOR_TEXT)
         
-        back_text = self.font_option.render("Press ENTER to Return", True, (150, 150, 150))
-        back_rect = back_text.get_rect(center=(self.screen.get_width() // 2, 500))
+        self.screen.blit(col1, (80, header_y))
+        self.screen.blit(col2, (180, header_y))
+        self.screen.blit(col3, (320, header_y))
+        self.screen.blit(col4, (400, header_y))
+
+        # List Scores
+        start_y = 200
+        for i, entry in enumerate(self.scoring.scores_list):
+            y = start_y + i * 35
+            color = self.renderer.COLOR_TEXT_WHITE if i > 0 else (255, 215, 0) # Gold for #1
+            
+            rank = self.font_small.render(f"#{i+1}", True, color)
+            score = self.font_small.render(str(entry['score']), True, color)
+            level = self.font_small.render(str(entry.get('level', '-')), True, color)
+            date = self.font_small.render(str(entry.get('date', '-')), True, color)
+            
+            self.screen.blit(rank, (80, y))
+            self.screen.blit(score, (180, y))
+            self.screen.blit(level, (320, y))
+            self.screen.blit(date, (400, y))
+
+        if not self.scoring.scores_list:
+            empty_surf = self.font_option.render("NO SCORES YET", True, (100, 100, 100))
+            empty_rect = empty_surf.get_rect(center=(self.screen.get_width() // 2, 300))
+            self.screen.blit(empty_surf, empty_rect)
+        
+        back_text = self.font_option.render("Press ENTER to Return", True, self.renderer.COLOR_TEXT)
+        back_rect = back_text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() - 60))
         self.screen.blit(back_text, back_rect)
