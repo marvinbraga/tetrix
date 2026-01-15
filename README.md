@@ -2,33 +2,25 @@
 
 A Tetris clone implemented in Python using Pygame.
 
-## Installation & Running
+## Getting Started
 
-### Using uv (Recommended)
+This project uses [uv](https://github.com/astral-sh/uv) for dependency management.
 
-If you have [uv](https://github.com/astral-sh/uv) installed, you can run the game directly without manual environment setup:
+### Running the game
+
+To run the game immediately (uv will handle dependencies automatically):
 
 ```bash
 uv run python main.py
 ```
 
-### Traditional approach
+### Development setup
 
-1. Create and activate a virtual environment:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Linux/macOS
-   ```
+To set up the local virtual environment and install dependencies:
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Run the game:
-   ```bash
-   python main.py
-   ```
+```bash
+uv sync
+```
 
 ## Controls
 
