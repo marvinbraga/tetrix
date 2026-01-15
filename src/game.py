@@ -188,6 +188,9 @@ class Game:
             
             self.renderer.draw_piece(self.current_piece)
             self.renderer.draw_ui(self.scoring, self.next_piece)
+            
+            if self.paused:
+                self.renderer.draw_pause()
         else:
             self.renderer.draw_board(self.board)
             self.renderer.draw_game_over()

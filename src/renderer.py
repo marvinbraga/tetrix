@@ -251,3 +251,20 @@ class Renderer:
         restart_surf = self.font_label.render("Press 'R' to Restart", True, self.COLOR_TEXT_WHITE)
         restart_rect = restart_surf.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 40))
         self.screen.blit(restart_surf, restart_rect)
+
+    def draw_pause(self):
+        """Draw pause overlay."""
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 150))  # Black semi-transparent
+        self.screen.blit(overlay, (0, 0))
+
+        # Pause Text
+        pause_surf = self.font_title.render("PAUSED", True, (255, 255, 255))
+        pause_rect = pause_surf.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        
+        # Shadow
+        shadow_surf = self.font_title.render("PAUSED", True, (0, 0, 0))
+        shadow_rect = shadow_surf.get_rect(center=(self.screen.get_width() // 2 + 2, self.screen.get_height() // 2 + 2))
+        
+        self.screen.blit(shadow_surf, shadow_rect)
+        self.screen.blit(pause_surf, pause_rect)
