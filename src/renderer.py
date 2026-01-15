@@ -171,7 +171,7 @@ class Renderer:
         # Draw Next Piece centered
         # Calculate center of preview box
         center_x = panel_x + 75
-        center_y = 440 + 75
+        center_y = 540 + 75  # Updated to match new box Y position (was 440)
         
         # Get piece dimensions to center it
         # This is a rough centering, can be improved based on exact shape bounding box
