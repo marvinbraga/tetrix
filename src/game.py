@@ -10,6 +10,7 @@ from .piece import Piece
 from .scoring import Scoring
 from .renderer import Renderer
 from .input_handler import InputHandler, Action
+from .audio import SoundManager
 
 class Game:
     """
@@ -27,6 +28,7 @@ class Game:
         self.scoring = Scoring()
         self.renderer = Renderer(self.screen)
         self.input_handler = InputHandler()
+        self.audio = SoundManager()
 
         self.current_piece = self._generate_piece()
         self.next_piece = self._generate_piece()
@@ -60,6 +62,7 @@ class Game:
         # Check for game over
         if not self.board.is_valid_position(self.current_piece):
             self.game_over = True
+            self.audio.play('gameover')
 
     def update(self, dt: float):
         """Update game state."""
@@ -74,6 +77,7 @@ class Game:
             if self.move_left_timer <= 0:
                 if self.board.is_valid_position(self.current_piece, -1, 0):
                     self.current_piece.move(-1, 0)
+                    self.audio.play('move')
                 self.move_left_timer = self.MOVE_DELAY if self.move_left_timer == 0 else self.MOVE_REPEAT
             self.move_left_timer -= dt
         else:
@@ -83,6 +87,7 @@ class Game:
             if self.move_right_timer <= 0:
                 if self.board.is_valid_position(self.current_piece, 1, 0):
                     self.current_piece.move(1, 0)
+                    self.audio.play('move')
                 self.move_right_timer = self.MOVE_DELAY if self.move_right_timer == 0 else self.MOVE_REPEAT
             self.move_right_timer -= dt
         else:
@@ -116,18 +121,26 @@ class Game:
                         self.current_piece.rotation = (self.current_piece.rotation - 1) % 4
                     else:
                         # Success with right kick
-                        pass
+                        self.audio.play('rotate')
                 else:
                     # Success with left kick
-                    pass
+                    self.audio.play('rotate')
+            else:
+                self.audio.play('rotate')
             self.rotate_timer = self.ROTATE_DELAY
 
         self.rotate_timer -= dt
 
         if Action.DROP in actions:
             # Hard drop
+            dropped = False
             while self.board.is_valid_position(self.current_piece, 0, 1):
                 self.current_piece.move(0, 1)
+                dropped = True
+            
+            if dropped:
+                self.audio.play('drop')
+            
             self._place_piece()
             return
 
@@ -147,6 +160,11 @@ class Game:
         """Place the current piece and handle line clearing."""
         if self.board.place_piece(self.current_piece):
             lines = self.board.clear_lines()
+            if lines > 0:
+                self.audio.play('clear')
+            else:
+                self.audio.play('drop') # Regular drop sound if no lines cleared
+                
             self.scoring.add_score(lines)
             self._spawn_piece()
 
