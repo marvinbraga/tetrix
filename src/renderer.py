@@ -150,18 +150,21 @@ class Renderer:
         # 2. Score Box
         self._draw_info_box("SCORE", str(scoring.score), panel_x, 100)
         
+        # New: High Score Box
+        self._draw_info_box("BEST", str(scoring.high_score), panel_x, 200)
+        
         # 3. Level Box
-        self._draw_info_box("LEVEL", str(scoring.level), panel_x, 200)
+        self._draw_info_box("LEVEL", str(scoring.level), panel_x, 300)
         
         # 4. Lines Box
-        self._draw_info_box("LINES", str(scoring.lines_cleared), panel_x, 300)
+        self._draw_info_box("LINES", str(scoring.lines_cleared), panel_x, 400)
 
         # 5. Next Piece Box
         label_surf = self.font_label.render("NEXT", True, self.COLOR_TEXT_WHITE)
-        self.screen.blit(label_surf, (panel_x, 400))
+        self.screen.blit(label_surf, (panel_x, 500))
         
         # Next Piece Preview Background
-        preview_rect = pygame.Rect(panel_x, 440, 150, 150)
+        preview_rect = pygame.Rect(panel_x, 540, 150, 150)
         pygame.draw.rect(self.screen, self.COLOR_PANEL, preview_rect, 0, 10) # Rounded corners
         pygame.draw.rect(self.screen, self.COLOR_GRID, preview_rect, 2, 10)
 

@@ -228,4 +228,5 @@ class Game:
             self.update(dt)
             self.render()
 
+        self.scoring.save_high_score()
         pygame.quit()
