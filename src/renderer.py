@@ -66,13 +66,15 @@ class Renderer:
         }
     }
 
-    def __init__(self, screen: pygame.Surface, block_size: int = 30):
+    def __init__(self, screen: pygame.Surface, settings, block_size: int = 30):
         self.screen = screen
+        self.settings = settings
         self.block_size = block_size
         self.board_offset = (50, 50)
         
-        self.current_theme_name = 'NEON'
-        self._apply_theme('NEON')
+        # Load theme from settings
+        self.current_theme_name = self.settings.get('theme')
+        self._apply_theme(self.current_theme_name)
         
         # Initialize fonts
         try:
@@ -94,14 +96,12 @@ class Renderer:
         self.COLOR_TEXT_WHITE = theme['TEXT_WHITE']
         self.PIECE_COLORS = theme['PIECES']
 
-    def cycle_theme(self):
-        """Switch to the next theme."""
-        theme_names = list(self.THEMES.keys())
-        idx = theme_names.index(self.current_theme_name)
-        new_idx = (idx + 1) % len(theme_names)
-        self.current_theme_name = theme_names[new_idx]
-        self._apply_theme(self.current_theme_name)
-        return self.current_theme_name
+    def set_theme(self, theme_name):
+        """Set a specific theme."""
+        if theme_name in self.THEMES:
+            self.current_theme_name = theme_name
+            self._apply_theme(theme_name)
+            self.settings.set('theme', theme_name)
 
     def _draw_block(self, x, y, color, alpha=255, ghost=False):
         """Helper to draw a single block with 3D effect."""

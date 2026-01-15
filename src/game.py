@@ -13,6 +13,7 @@ from .renderer import Renderer
 from .input_handler import InputHandler, Action
 from .audio import SoundManager
 from .menu import MainMenu
+from .settings import Settings
 
 class GameState:
     MENU = 0
@@ -31,9 +32,10 @@ class Game:
         self.clock = pygame.time.Clock()
         self.fps = 60
 
+        self.settings = Settings()
         self.board = Board()
         self.scoring = Scoring()
-        self.renderer = Renderer(self.screen)
+        self.renderer = Renderer(self.screen, self.settings)
         self.input_handler = InputHandler()
         self.audio = SoundManager()
         
