@@ -200,35 +200,36 @@ class Renderer:
         self._draw_info_box("LEVEL", str(scoring.level), panel_x, 300)
         self._draw_info_box("LINES", str(scoring.lines_cleared), panel_x, 400)
 
-        # Draw NEXT piece
-        label_surf = self.font_label.render("NEXT", True, self.COLOR_TEXT_WHITE)
-        self.screen.blit(label_surf, (panel_x, 500))
-
-        self._draw_piece_preview(next_piece, panel_x, 540)
-
-        # Draw HOLD piece
+        # Draw HOLD piece (on the right panel, above NEXT)
         hold_label_surf = self.font_label.render("HOLD", True, self.COLOR_TEXT_WHITE)
-        self.screen.blit(hold_label_surf, (40, 500))
+        self.screen.blit(hold_label_surf, (panel_x, 490))
 
         if held_piece:
             from .piece import Piece
             hold_piece_obj = Piece(held_piece)
-            self._draw_piece_preview(hold_piece_obj, 40, 540)
+            self._draw_piece_preview(hold_piece_obj, panel_x, 530, small=True)
         else:
-            # Draw empty hold box
-            preview_rect = pygame.Rect(40, 540, 150, 150)
+            # Draw empty hold box (smaller)
+            preview_rect = pygame.Rect(panel_x, 530, 120, 120)
             pygame.draw.rect(self.screen, self.COLOR_PANEL, preview_rect, 0, 10)
             pygame.draw.rect(self.screen, self.COLOR_GRID, preview_rect, 2, 10)
 
-    def _draw_piece_preview(self, piece: Piece, x: int, y: int):
+        # Draw NEXT piece (below HOLD)
+        label_surf = self.font_label.render("NEXT", True, self.COLOR_TEXT_WHITE)
+        self.screen.blit(label_surf, (panel_x + 130, 490))
+
+        self._draw_piece_preview(next_piece, panel_x + 130, 530, small=True)
+
+    def _draw_piece_preview(self, piece: Piece, x: int, y: int, small: bool = False):
         """Helper method to draw a piece preview box."""
-        preview_rect = pygame.Rect(x, y, 150, 150)
+        box_size = 120 if small else 150
+        preview_rect = pygame.Rect(x, y, box_size, box_size)
         pygame.draw.rect(self.screen, self.COLOR_PANEL, preview_rect, 0, 10)
         pygame.draw.rect(self.screen, self.COLOR_GRID, preview_rect, 2, 10)
 
-        center_x = x + 75
-        center_y = y + 75
-        prev_block_size = self.block_size
+        center_x = x + box_size // 2
+        center_y = y + box_size // 2
+        prev_block_size = 25 if small else self.block_size
 
         shape = piece.shape
         min_c, max_c = 4, 0
