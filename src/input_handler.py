@@ -14,6 +14,7 @@ class Action(Enum):
     DROP = 4
     PAUSE = 5
     RESTART = 6
+    HOLD = 7
 
 class InputHandler:
     """
@@ -28,6 +29,9 @@ class InputHandler:
         pygame.K_SPACE: Action.DROP,
         pygame.K_p: Action.PAUSE,
         pygame.K_r: Action.RESTART,
+        pygame.K_c: Action.HOLD,
+        pygame.K_LSHIFT: Action.HOLD,
+        pygame.K_RSHIFT: Action.HOLD,
     }
 
     def __init__(self):

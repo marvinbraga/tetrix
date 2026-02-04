@@ -28,7 +28,11 @@ class SoundManager:
             'rotate': 'rotate.wav',
             'drop': 'drop.wav',
             'clear': 'clear.wav',
-            'gameover': 'gameover.wav'
+            'gameover': 'gameover.wav',
+            'combo': 'combo.wav',
+            'levelup': 'levelup.wav',
+            'tetris': 'tetris.wav',
+            'hold': 'move.wav'  # Reuse move sound for hold
         }
         
         base_path = os.path.join('assets', 'sounds')
@@ -45,6 +49,12 @@ class SoundManager:
                         self.sounds[name].set_volume(0.5)
                     elif name == 'clear':
                         self.sounds[name].set_volume(0.6)
+                    elif name == 'combo':
+                        self.sounds[name].set_volume(0.7)
+                    elif name == 'levelup':
+                        self.sounds[name].set_volume(0.8)
+                    elif name == 'tetris':
+                        self.sounds[name].set_volume(0.8)
                 except Exception as e:
                     print(f"Failed to load sound {filename}: {e}")
             else:

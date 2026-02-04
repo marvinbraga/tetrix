@@ -4,9 +4,11 @@ Handles rendering of game elements with a modern, sophisticated aesthetic.
 """
 
 import pygame
+from typing import Optional
 from .board import Board
 from .piece import Piece
 from .scoring import Scoring
+from .animations import AnimationManager
 
 class Renderer:
     """
@@ -71,11 +73,11 @@ class Renderer:
         self.settings = settings
         self.block_size = block_size
         self.board_offset = (50, 50)
-        
+
         # Load theme from settings
         self.current_theme_name = self.settings.get('theme')
         self._apply_theme(self.current_theme_name)
-        
+
         # Initialize fonts
         try:
             self.font_title = pygame.font.Font(None, 60)
@@ -85,6 +87,9 @@ class Renderer:
             self.font_title = pygame.font.SysFont('Arial', 60, bold=True)
             self.font_label = pygame.font.SysFont('Arial', 30)
             self.font_value = pygame.font.SysFont('Arial', 40, bold=True)
+
+        # Animation manager
+        self.anim_manager = AnimationManager()
 
     def _apply_theme(self, theme_name):
         """Apply the selected theme colors."""
@@ -126,25 +131,27 @@ class Renderer:
         mid_color = tuple(min(255, c + 30) for c in color)
         pygame.draw.rect(self.screen, mid_color, gloss_rect)
 
-    def draw_board(self, board: Board):
+    def draw_board(self, board: Board, shake_offset: tuple = (0, 0)):
         """Draw the game board with grid and locked pieces."""
+        offset_x, offset_y = shake_offset
+
         board_rect = pygame.Rect(
-            self.board_offset[0], 
-            self.board_offset[1], 
-            board.WIDTH * self.block_size, 
+            self.board_offset[0] + offset_x,
+            self.board_offset[1] + offset_y,
+            board.WIDTH * self.block_size,
             board.HEIGHT * self.block_size
         )
         pygame.draw.rect(self.screen, (20, 20, 35) if self.current_theme_name == 'NEON' else self.COLOR_PANEL, board_rect)
         pygame.draw.rect(self.screen, self.COLOR_TEXT, board_rect, 2)
 
         for x in range(board.WIDTH):
-            start = (self.board_offset[0] + x * self.block_size, self.board_offset[1])
-            end = (self.board_offset[0] + x * self.block_size, self.board_offset[1] + board.HEIGHT * self.block_size)
+            start = (self.board_offset[0] + offset_x + x * self.block_size, self.board_offset[1] + offset_y)
+            end = (self.board_offset[0] + offset_x + x * self.block_size, self.board_offset[1] + offset_y + board.HEIGHT * self.block_size)
             pygame.draw.line(self.screen, self.COLOR_GRID, start, end, 1)
-        
+
         for y in range(board.HEIGHT):
-            start = (self.board_offset[0], self.board_offset[1] + y * self.block_size)
-            end = (self.board_offset[0] + board.WIDTH * self.block_size, self.board_offset[1] + y * self.block_size)
+            start = (self.board_offset[0] + offset_x, self.board_offset[1] + offset_y + y * self.block_size)
+            end = (self.board_offset[0] + offset_x + board.WIDTH * self.block_size, self.board_offset[1] + offset_y + y * self.block_size)
             pygame.draw.line(self.screen, self.COLOR_GRID, start, end, 1)
 
         for y, row in enumerate(board.grid):
@@ -155,35 +162,36 @@ class Renderer:
                     if self.current_theme_name == 'RETRO' or not color:
                         # Map stored piece type back to color if possible, or use default
                          # Note: board.colors stores RGB tuples.
-                         # For theme switching to work perfectly on existing pieces, 
+                         # For theme switching to work perfectly on existing pieces,
                          # we might need to store Piece Types in the grid, not Colors.
                          # But for now, we will just draw what's there unless it's Retro.
                          if self.current_theme_name == 'RETRO':
                              color = self.PIECE_COLORS['T'] # Use generic green
                          elif not color:
                              color = (128, 128, 128)
-                    
-                    draw_x = self.board_offset[0] + x * self.block_size
-                    draw_y = self.board_offset[1] + y * self.block_size
+
+                    draw_x = self.board_offset[0] + offset_x + x * self.block_size
+                    draw_y = self.board_offset[1] + offset_y + y * self.block_size
                     self._draw_block(draw_x, draw_y, color)
 
-    def draw_piece(self, piece: Piece, offset_x: int = 0, offset_y: int = 0, ghost: bool = False):
+    def draw_piece(self, piece: Piece, offset_x: int = 0, offset_y: int = 0, ghost: bool = False, shake_offset: tuple = (0, 0)):
         """Draw a piece."""
         color = self.PIECE_COLORS.get(piece.shape_type, piece.color)
-        
+        shake_x, shake_y = shake_offset
+
         for x, y in piece.get_positions():
-            draw_x = self.board_offset[0] + (x + offset_x) * self.block_size
-            draw_y = self.board_offset[1] + (y + offset_y) * self.block_size
-            
-            if draw_y < self.board_offset[1]:
+            draw_x = self.board_offset[0] + shake_x + (x + offset_x) * self.block_size
+            draw_y = self.board_offset[1] + shake_y + (y + offset_y) * self.block_size
+
+            if draw_y < self.board_offset[1] + shake_y:
                 continue
-                
+
             self._draw_block(draw_x, draw_y, color, ghost=ghost)
 
-    def draw_ui(self, scoring: Scoring, next_piece: Piece):
+    def draw_ui(self, scoring: Scoring, next_piece: Piece, held_piece=None):
         """Draw the User Interface."""
         panel_x = 400
-        
+
         title_surf = self.font_title.render("TETRIX", True, self.COLOR_TEXT)
         self.screen.blit(title_surf, (panel_x, 30))
 
@@ -192,18 +200,37 @@ class Renderer:
         self._draw_info_box("LEVEL", str(scoring.level), panel_x, 300)
         self._draw_info_box("LINES", str(scoring.lines_cleared), panel_x, 400)
 
+        # Draw NEXT piece
         label_surf = self.font_label.render("NEXT", True, self.COLOR_TEXT_WHITE)
         self.screen.blit(label_surf, (panel_x, 500))
-        
-        preview_rect = pygame.Rect(panel_x, 540, 150, 150)
+
+        self._draw_piece_preview(next_piece, panel_x, 540)
+
+        # Draw HOLD piece
+        hold_label_surf = self.font_label.render("HOLD", True, self.COLOR_TEXT_WHITE)
+        self.screen.blit(hold_label_surf, (40, 500))
+
+        if held_piece:
+            from .piece import Piece
+            hold_piece_obj = Piece(held_piece)
+            self._draw_piece_preview(hold_piece_obj, 40, 540)
+        else:
+            # Draw empty hold box
+            preview_rect = pygame.Rect(40, 540, 150, 150)
+            pygame.draw.rect(self.screen, self.COLOR_PANEL, preview_rect, 0, 10)
+            pygame.draw.rect(self.screen, self.COLOR_GRID, preview_rect, 2, 10)
+
+    def _draw_piece_preview(self, piece: Piece, x: int, y: int):
+        """Helper method to draw a piece preview box."""
+        preview_rect = pygame.Rect(x, y, 150, 150)
         pygame.draw.rect(self.screen, self.COLOR_PANEL, preview_rect, 0, 10)
         pygame.draw.rect(self.screen, self.COLOR_GRID, preview_rect, 2, 10)
 
-        center_x = panel_x + 75
-        center_y = 540 + 75
-        prev_block_size = self.block_size 
+        center_x = x + 75
+        center_y = y + 75
+        prev_block_size = self.block_size
 
-        shape = next_piece.shape
+        shape = piece.shape
         min_c, max_c = 4, 0
         min_r, max_r = 4, 0
         has_block = False
@@ -215,15 +242,15 @@ class Renderer:
                     min_r = min(min_r, r)
                     max_r = max(max_r, r)
                     has_block = True
-        
+
         if has_block:
             w = (max_c - min_c + 1) * prev_block_size
             h = (max_r - min_r + 1) * prev_block_size
             start_x = center_x - w // 2
             start_y = center_y - h // 2
-            
-            color = self.PIECE_COLORS.get(next_piece.shape_type, next_piece.color)
-            
+
+            color = self.PIECE_COLORS.get(piece.shape_type, piece.color)
+
             for r in range(4):
                 for c in range(4):
                     if shape[r][c]:
@@ -246,22 +273,81 @@ class Renderer:
         val_rect_text = val_surf.get_rect(center=val_rect.center)
         self.screen.blit(val_surf, val_rect_text)
 
-    def draw_game_over(self):
-        """Draw game over overlay."""
+    def draw_game_over(self, scoring: Scoring, game_time: float):
+        """Draw game over overlay with statistics and high score feedback."""
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 200))
         self.screen.blit(overlay, (0, 0))
 
-        go_surf = self.font_title.render("GAME OVER", True, self.COLOR_TEXT)
-        go_rect = go_surf.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 - 40))
-        self.screen.blit(go_surf, go_rect)
+        center_x = self.screen.get_width() // 2
+        y_pos = 100
 
+        # Check if new high score
+        is_new_high_score = False
+        rank_position = None
+        for i, entry in enumerate(scoring.scores_list):
+            if entry['score'] == scoring.score:
+                is_new_high_score = True
+                rank_position = i + 1
+                break
+
+        # Game Over title
+        go_surf = self.font_title.render("GAME OVER", True, self.COLOR_TEXT)
+        go_rect = go_surf.get_rect(center=(center_x, y_pos))
+        self.screen.blit(go_surf, go_rect)
+        y_pos += 80
+
+        # New High Score message with animation effect
+        if is_new_high_score and rank_position is not None:
+            import pygame.time
+            pulse = abs((pygame.time.get_ticks() % 1000) - 500) / 500.0
+            highlight_color = tuple(
+                int(self.COLOR_TEXT[i] + (255 - self.COLOR_TEXT[i]) * pulse * 0.5)
+                for i in range(3)
+            )
+
+            new_hs_surf = self.font_value.render("NEW HIGH SCORE!", True, highlight_color)
+            new_hs_rect = new_hs_surf.get_rect(center=(center_x, y_pos))
+            self.screen.blit(new_hs_surf, new_hs_rect)
+            y_pos += 60
+
+            rank_text = f"#{rank_position} in Top 10"
+            rank_surf = self.font_label.render(rank_text, True, self.COLOR_TEXT_WHITE)
+            rank_rect = rank_surf.get_rect(center=(center_x, y_pos))
+            self.screen.blit(rank_surf, rank_rect)
+            y_pos += 50
+
+        # Game Statistics
+        stats_font = pygame.font.Font(None, 32)
+
+        # Format game time
+        minutes = int(game_time // 60)
+        seconds = int(game_time % 60)
+        time_text = f"Time: {minutes:02d}:{seconds:02d}"
+
+        stats = [
+            f"Score: {scoring.score}",
+            f"Level: {scoring.level}",
+            f"Lines: {scoring.lines_cleared}",
+            time_text
+        ]
+
+        for stat in stats:
+            stat_surf = stats_font.render(stat, True, self.COLOR_TEXT_WHITE)
+            stat_rect = stat_surf.get_rect(center=(center_x, y_pos))
+            self.screen.blit(stat_surf, stat_rect)
+            y_pos += 40
+
+        y_pos += 20
+
+        # Instructions
         restart_surf = self.font_label.render("Press 'R' to Restart", True, self.COLOR_TEXT_WHITE)
-        restart_rect = restart_surf.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 40))
+        restart_rect = restart_surf.get_rect(center=(center_x, y_pos))
         self.screen.blit(restart_surf, restart_rect)
-        
+        y_pos += 40
+
         menu_surf = self.font_label.render("Press 'ESC' for Menu", True, self.COLOR_TEXT_WHITE)
-        menu_rect = menu_surf.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2 + 80))
+        menu_rect = menu_surf.get_rect(center=(center_x, y_pos))
         self.screen.blit(menu_surf, menu_rect)
 
     def draw_pause(self):
