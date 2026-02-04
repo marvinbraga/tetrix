@@ -300,7 +300,6 @@ class Renderer:
 
         # New High Score message with animation effect
         if is_new_high_score and rank_position is not None:
-            import pygame.time
             pulse = abs((pygame.time.get_ticks() % 1000) - 500) / 500.0
             highlight_color = tuple(
                 int(self.COLOR_TEXT[i] + (255 - self.COLOR_TEXT[i]) * pulse * 0.5)
